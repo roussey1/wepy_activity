@@ -1,0 +1,101 @@
+#from activity import Activity
+import simtk.unit
+import numpy as np
+import mdtraj as mdj
+
+from wepy.util.util import box_vectors_to_lengths_angles
+
+class Action(object):
+    #
+    # This measures the action: the difference in kinetic and potential energy
+    # integrated over the path length.  The integration scheme is a simple
+    # trapezoidal rule, and is only accurate for very small step sizes.
+    #
+    def __init__(self):
+        pass
+
+    def get_incr(self, state1, state2):
+        k1 = state1['kinetic_energy']
+        k2 = state2['kinetic_energy']
+        u1 = state1['potential_energy']
+        u2 = state2['potential_energy']
+
+        # time in state2 contains the elapsed time in the segment
+        tau = state2['time']
+
+        return 0.5*tau*(k1-u1+k2-u2)
+
+class MeanSqD(object):
+    #
+    # This measures the mean squared displacement of the selected atoms,
+    # taking into account periodic boundary conditions.
+    #
+    def __init__(self,atom_idxs=None):
+        self.atom_idxs = atom_idxs
+
+    def get_delta_peri(self, arr1, arr2, box_len):
+        delta = arr1-arr2
+
+        pos_idxs = np.where(delta > box_len/2)
+        for i,x in enumerate(pos_idxs[0]):
+            delta[x][pos_idxs[1][i]] -= box_len[pos_idxs[1][i]]
+
+        neg_idxs = np.where(delta < -box_len/2)
+        for i,x in enumerate(neg_idxs[0]):
+            delta[x][neg_idxs[1][i]] += box_len[neg_idxs[1][i]]
+
+        return delta
+
+    def get_incr(self, state1, state2):
+        pos1 = np.array(state1['positions'])
+        pos2 = np.array(state2['positions'])
+        box_size = np.array([state1['box_vectors'][i][i] for i in range(len(state1['box_vectors']))])
+
+        if self.atom_idxs is not None:
+            delta = self.get_delta_peri(pos2[self.atom_idxs,:],pos1[self.atom_idxs,:],box_size)
+            diffsq = (delta)**2
+            return diffsq.sum()/len(self.atom_idxs)
+        else:
+            # use all atoms
+            delta = self.get_delta_peri(pos2,pos1,box_size)
+            diffsq = (delta)**2
+            return diffsq.sum()/len(pos1)
+
+class LJHarmonicPotential(object):
+
+    # This calculates the potential energy in kJ/mol from the applied force
+    # based on the change in the interatomic distance of the LJ particles.
+    # This differs from the HarmonicWork above only in the final equation used
+    # for the calculation and that this depends only on one state (the current state).
+    
+    def __init__(self, topology=None, periodic_state=None):
+        self.topology = topology
+        self.periodic_state = periodic_state
+
+    # state1 = previous cycle state, state2 = current cycle state
+    def get_incr(self, k1, d0_1, state1, k2, d0_2):
+        # k old, d0 old (inital, used values), current state,
+        # (k new, d0 new <-- both not used in simulation yet)
+        # old = a, new = b
+        
+        # get the uncentered positions
+        # state1 = current state
+        pos = np.array(state1['positions'])
+
+        # get the distance for the current state
+        box_vectors = state1['box_vectors']
+        unitcell_lengths, unitcell_angles = box_vectors_to_lengths_angles(box_vectors)
+        unitcell_lengths = np.array(unitcell_lengths)
+
+        traj = mdj.Trajectory(pos, self.topology,
+                            unitcell_lengths=unitcell_lengths,
+                            unitcell_angles=unitcell_angles)
+        # new dist, b
+        dist = mdj.compute_distances(traj, [(0,1)], periodic=self.periodic_state)
+
+        # integrate to calculate work (a = old, b = new)
+        val_a = k1/2 * (dist - d0_1)**2
+        val_b = k2/2 * (dist - d0_2)**2
+        
+        work = val_b - val_a
+        return work
