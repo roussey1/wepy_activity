@@ -102,6 +102,8 @@ class OpenMMHarmonicPotentialRunner(OpenMMRunner):
         
     def pre_cycle(self, cycle_idx=None, **kwargs):
 
+        super().pre_cycle(**kwargs)
+
         # get the cycle_idx and current k & d0 values dynamics will be run with  
         self._cycle_idx = cycle_idx
         self._update_forces(cycle_idx)
