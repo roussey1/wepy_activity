@@ -5,7 +5,7 @@
 ## Additional info
 The theory for this project is based in nonequilibrium stastical mechanics, specifically the Jarzynski Nonequilibrium Work Relation AKA '[The Jarzynski Equality](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.78.2690)'. This is an equation that relates the work done by a nonequilibrium process on a system to the equilibrium free energy difference between the inital and final states. This equation is of interest because it allows us to perform nonequilibrium work (along some system-relevant lambda from lambda_0 to lambda_1) to generate equilibrium free energy differences. The JE is as follows: <exp(-beta W)> = exp(-beta* Delta F), where <...> indicate the ensemble average, W is work, and Delta F is the Helmholtz free energy. This is significant because these nonequilibrium simualtions can be very fast and potentially less computationly expensive than traditional equilibrium simualtions used to determine the same value.
    
-   The final free energy determined is dominated by low work / high importance trajectories, and we are interested in determining if enhancing the sampling of low work trajectories may allow us to find an accurate value of Delta F without the necessary number of trajectories otherwise needed for convergence. We have aimed to develop a new method of calculating free energy differences between states of a system utilizing nonequilibrium processes and means of analyzing these nonequilibrium processes. This software conatins a new "importance resampler" as well as a "history-dependent" version of the novelty-REVO resampler. Free energy surfaces can be generated for these simulations with the provided analysis code.
+   The final free energy determined is dominated by low work / high importance trajectories, and we are interested in determining if enhancing the sampling of low work trajectories may allow us to find an accurate value of Delta F without the necessary number of trajectories otherwise needed for convergence. We have aimed to develop a new method of calculating free energy differences between states of a system utilizing nonequilibrium processes and means of analyzing these nonequilibrium processes. This software conatins a new "importance resampler" as well as a "history-dependent" version of the novelty-REVO resampler. A Diffusion Monte Carlo engine compatible with Wepy is also provided. Free energy surfaces can be generated for these simulations with the provided analysis code.
    
 ## Authors
 
@@ -45,6 +45,8 @@ python lj_revo.py 500 100 50 test_revo.wepy.h5 10 char_dist* #args are num_cycle
 
 python lj_importance.py 500 100 50 test_importance.wepy.h5 10 1.0 #args are num_cycles num_steps num_walkers output_file_name epsilon amplification
 
+python lj_diffmc.py 500 100 50 test_diffmc.wepy.h5 10 #args are num_cycles num_steps num_walkers output_file_name epsilon
+
 ## Analysis testing
 
 The analysis provided here is equation 8 from Hummer and Szabo, 2001. This creates a free energy surface from the probabilities and work values saved during a simulation.
@@ -57,7 +59,7 @@ To run this analysis code:
 
 3. python hz_equation8.py 10 50 ../outputs/resampler/10_eps/test_revo.wepy.h5 #args are epsilon num_walkers path/to/file
 
-A plot of the target free energy surface for epsilon 10 as well as the free energy surface generated from the simulation data will appear.
+A plot of the target free energy surface for epsilon 10 as well as the free energy surface generated from the simulation data will appear. The corresponding code for DIFFMC is in the diffmc folder and requires the same inputs.
 
 ## References
 
